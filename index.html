@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Kuis: Misi Arduino & MotoGP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Poppins:wght@400;600;800&display=swap');
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            overflow-x: hidden;
+        }
+
+        .font-game {
+            font-family: 'Press Start 2P', cursive;
+            line-height: 1.5;
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .btn-game {
+            transition: all 0.2s ease-in-out;
+            border-bottom: 4px solid rgba(0,0,0,0.3);
+        }
+        
+        .btn-game:active {
+            transform: translateY(4px);
+            border-bottom: 0px;
+        }
+
+        .emoji-art {
+            font-size: 5rem;
+            text-shadow: 0 0 20px rgba(255,255,255,0.3);
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+
+        .correct-ans { background-color: #10b981 !important; color: white !important; border-color: #059669 !important; }
+        .wrong-ans { background-color: #ef4444 !important; color: white !important; border-color: #b91c1c !important; }
+        
+        /* Neon Glows */
+        .glow-text { text-shadow: 0 0 10px #38bdf8, 0 0 20px #38bdf8; }
+        .glow-xp { text-shadow: 0 0 10px #fbbf24, 0 0 20px #fbbf24; }
+
+        .hidden-screen { display: none !important; }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900">
+
+    <!-- AUDIO EFFECTS (Base64 empty templates, using HTML5 Audio logic without external files for simplicity, simulating with UI visual feedback instead) -->
+
+    <!-- SCREEN 1: WELCOME SCREEN -->
+    <div id="screen-welcome" class="glass-panel w-full max-w-2xl rounded-3xl p-8 text-center flex flex-col items-center justify-center space-y-8 relative overflow-hidden">
+        <div class="absolute -top-20 -left-20 w-64 h-64 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
+        <div class="absolute -bottom-20 -right-20 w-64 h-64 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
+        
+        <div class="text-6xl mb-4">🎮🏍️</div>
+        <h1 class="font-game text-2xl md:text-3xl text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 glow-text uppercase mb-2">
+            Kuis Tebak Gambar
+        </h1>
+        <h2 class="text-xl text-slate-300 font-semibold uppercase tracking-widest">Misi Arduino & MotoGP</h2>
+        
+        <p class="text-slate-400 text-sm md:text-base mt-4 max-w-md">
+            Selesaikan 10 Misi rahasia, kumpulkan XP, dan buktikan pengetahuanmu tentang Mikrokontroler, Remote IR, dan MotoGP!
+        </p>
+
+        <button onclick="goToNameScreen()" class="mt-8 btn-game bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-4 px-10 rounded-full text-xl flex items-center gap-3">
+            <span>MULAI MAIN</span>
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+        </button>
+    </div>
+
+    <!-- SCREEN 2: NAME INPUT -->
+    <div id="screen-name" class="hidden-screen glass-panel w-full max-w-md rounded-3xl p-8 text-center flex flex-col items-center space-y-6">
+        <div class="text-5xl mb-2">👾</div>
+        <h2 class="font-game text-lg text-cyan-400">Identitas Pemain</h2>
+        <p class="text-slate-300 text-sm">Masukkan nama karaktermu untuk menyimpan XP.</p>
+        
+        <input type="text" id="player-name-input" placeholder="Nama Pemain..." class="w-full bg-slate-800 border-2 border-slate-600 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-cyan-400 font-bold text-center text-xl transition-colors" maxlength="15">
+        
+        <button onclick="startGame()" class="w-full btn-game bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-8 rounded-xl text-lg mt-4">
+            SIMPAN & LANJUT
+        </button>
+        <button onclick="backToWelcome()" class="text-slate-400 hover:text-white text-sm mt-2 transition-colors">
+            Kembali
+        </button>
+    </div>
+
+    <!-- SCREEN 3: GAMEPLAY -->
+    <div id="screen-game" class="hidden-screen w-full max-w-3xl flex flex-col space-y-4">
+        <!-- Header HUD -->
+        <div class="glass-panel rounded-2xl p-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-indigo-600 p-2 rounded-lg"><span class="text-xl">👤</span></div>
+                <div>
+                    <div id="hud-name" class="font-bold text-lg text-white">Player</div>
+                    <div id="hud-mission" class="text-xs text-cyan-400 font-bold uppercase tracking-wider">Misi 1/10</div>
+                </div>
+            </div>
+            <div class="text-right flex items-center gap-4">
+                <div>
+                    <div class="text-xs text-slate-400 uppercase">Progress</div>
+                    <div id="hud-progress" class="font-bold text-lg">1/5</div>
+                </div>
+                <div class="bg-slate-800 border border-amber-500/50 px-4 py-2 rounded-xl text-center min-w-[100px]">
+                    <div class="text-[10px] text-amber-500 font-bold uppercase">Total XP</div>
+                    <div id="hud-xp" class="font-game text-sm text-amber-400 glow-xp mt-1">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Question Container -->
+        <div class="glass-panel rounded-3xl p-6 md:p-10 flex flex-col items-center relative">
+            <div id="mission-title-display" class="absolute top-0 transform -translate-y-1/2 bg-indigo-600 px-6 py-1 rounded-full text-xs font-bold tracking-widest uppercase border border-indigo-400 shadow-lg shadow-indigo-500/30">
+                Misi 1
+            </div>
+
+            <!-- The Image / Emoji Art -->
+            <div id="question-image" class="emoji-art my-6 select-none">
+                📺📶
+            </div>
+
+            <h3 id="question-text" class="text-center text-xl md:text-2xl font-semibold mb-8 text-slate-100 min-h-[60px] flex items-center">
+                Pertanyaan akan muncul di sini...
+            </h3>
+
+            <!-- Options Grid -->
+            <div id="options-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+                <button class="option-btn btn-game bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-semibold py-4 px-6 rounded-xl text-left transition-all relative overflow-hidden" onclick="checkAnswer(0)">
+                    <span class="absolute left-0 top-0 bottom-0 bg-slate-700 w-10 flex items-center justify-center font-bold text-slate-400 border-r border-slate-600">A</span>
+                    <span class="pl-8" id="opt-0">Opsi A</span>
+                </button>
+                <button class="option-btn btn-game bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-semibold py-4 px-6 rounded-xl text-left transition-all relative overflow-hidden" onclick="checkAnswer(1)">
+                    <span class="absolute left-0 top-0 bottom-0 bg-slate-700 w-10 flex items-center justify-center font-bold text-slate-400 border-r border-slate-600">B</span>
+                    <span class="pl-8" id="opt-1">Opsi B</span>
+                </button>
+                <button class="option-btn btn-game bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-semibold py-4 px-6 rounded-xl text-left transition-all relative overflow-hidden" onclick="checkAnswer(2)">
+                    <span class="absolute left-0 top-0 bottom-0 bg-slate-700 w-10 flex items-center justify-center font-bold text-slate-400 border-r border-slate-600">C</span>
+                    <span class="pl-8" id="opt-2">Opsi C</span>
+                </button>
+                <button class="option-btn btn-game bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-semibold py-4 px-6 rounded-xl text-left transition-all relative overflow-hidden" onclick="checkAnswer(3)">
+                    <span class="absolute left-0 top-0 bottom-0 bg-slate-700 w-10 flex items-center justify-center font-bold text-slate-400 border-r border-slate-600">D</span>
+                    <span class="pl-8" id="opt-3">Opsi D</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCREEN 4: MISSION COMPLETE OVERLAY -->
+    <div id="screen-mission-complete" class="hidden-screen fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-md rounded-3xl p-8 text-center flex flex-col items-center transform scale-100 transition-transform animate-bounce-in">
+            <div class="text-6xl mb-4">⭐</div>
+            <h2 class="font-game text-xl text-amber-400 mb-2">MISI SELESAI!</h2>
+            <p id="mission-complete-text" class="text-slate-300 text-sm mb-6">Kamu telah menyelesaikan Misi 1.</p>
+            
+            <div class="bg-slate-800 w-full rounded-xl p-4 mb-8 border border-slate-700">
+                <p class="text-xs text-slate-400 uppercase tracking-widest mb-1">XP Diperoleh</p>
+                <p id="mission-xp-gained" class="text-3xl font-bold text-emerald-400">+100 XP</p>
+            </div>
+
+            <button onclick="nextMission()" class="w-full btn-game bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold py-4 px-8 rounded-xl text-lg">
+                LANJUT MISI <span id="next-mission-num">2</span> 🚀
+            </button>
+        </div>
+    </div>
+
+    <!-- SCREEN 5: END GAME (VICTORY) -->
+    <div id="screen-end" class="hidden-screen glass-panel w-full max-w-lg rounded-3xl p-10 text-center flex flex-col items-center relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-400 via-cyan-400 to-blue-500"></div>
+        <div class="text-7xl mb-6">🏆</div>
+        <h1 class="font-game text-2xl text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-yellow-500 glow-xp mb-2">VICTORY!</h1>
+        <h2 class="text-xl text-white font-bold mb-6">Selamat, <span id="final-name" class="text-cyan-400">Pemain</span>!</h2>
+        
+        <p class="text-slate-300 mb-8">Kamu telah menamatkan seluruh misi Arduino & MotoGP.</p>
+        
+        <div class="grid grid-cols-2 gap-4 w-full mb-8">
+            <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700">
+                <div class="text-xs text-slate-400 uppercase mb-1">Total Skor</div>
+                <div id="final-xp" class="text-2xl font-bold text-amber-400">1000 XP</div>
+            </div>
+            <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700">
+                <div class="text-xs text-slate-400 uppercase mb-1">Pangkat</div>
+                <div id="final-rank" class="text-xl font-bold text-emerald-400">Master</div>
+            </div>
+        </div>
+
+        <button onclick="restartGame()" class="btn-game bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-8 rounded-xl w-full">
+            MAIN LAGI 🔄
+        </button>
+    </div>
+
+    <script>
+        // --- GAME DATA: 10 Missions, 5 Questions Each based on the PDF ---
+        const gameData = [
+            {
+                missionTitle: "Misi 1: Komponen Dasar Dasar",
+                questions: [
+                    { img: "💻🌐🔌", q: "Tebak Gambar: Simulator online apa yang digunakan untuk merangkai Arduino di proyek ini?", options: ["Tinkercad", "Proteus", "WOKWI", "Arduino IDE"], ans: 2 },
+                    { img: "♾️🔵🇮🇹", q: "Tebak Gambar: Papan mikrokontroler utama yang bertindak sebagai 'otak' pada sistem ini adalah?", options: ["Arduino Nano", "Raspberry Pi", "ESP32", "Arduino Uno"], ans: 3 },
+                    { img: "📺📶", q: "Tebak Gambar: Alat kendali jarak jauh yang menggunakan sinar inframerah disebut...", options: ["Remote Infrared", "Bluetooth Controller", "Modul WiFi", "Joystick Analog"], ans: 0 },
+                    { img: "👁️📶", q: "Tebak Gambar: Sensor penerima sinyal cahaya inframerah lalu mengubahnya menjadi data digital adalah?", options: ["Sensor Ultrasonik", "IR Receiver", "LDR", "Potensiometer"], ans: 1 },
+                    { img: "💡🔴", q: "Tebak Gambar: Komponen output berupa lampu indikator yang digunakan dalam proyek ini disebut?", options: ["Buzzer", "Motor Servo", "LED", "Resistor"], ans: 2 }
+                ]
+            },
+            {
+                missionTitle: "Misi 2: Layar Informasi",
+                questions: [
+                    { img: "📟1️⃣6️⃣✖️2️⃣", q: "Tebak Gambar: Komponen layar yang digunakan untuk menampilkan informasi teks pada proyek ini adalah?", options: ["OLED 0.96", "LCD 16x2 I2C", "Dot Matrix", "Seven Segment"], ans: 1 },
+                    { img: "📺2️⃣🔤", q: "Tebak Angka: Berapa jumlah baris maksimal yang bisa ditampilkan pada LCD 16x2?", options: ["1 Baris", "2 Baris", "4 Baris", "16 Baris"], ans: 1 },
+                    { img: "📟4️⃣🔌", q: "Tebak Keunggulan: Apa keunggulan utama menggunakan modul I2C pada LCD?", options: ["Kabel lebih banyak", "Harga lebih mahal", "Hemat pin Arduino (2 kabel data)", "Layar lebih berwarna"], ans: 2 },
+                    { img: "🔌🔗", q: "Tebak Benda: Kabel yang digunakan untuk menghubungkan antar komponen di Wokwi disebut?", options: ["Kabel Jumper", "Kabel USB", "Kabel LAN", "Kabel Koaksial"], ans: 0 },
+                    { img: "📝👀", q: "Tebak Fungsi: Dalam proyek ini, fungsi utama LCD adalah?", options: ["Menerima sinyal remote", "Menghidupkan LED", "Menyimpan data", "Menampilkan status dan nama pembalap"], ans: 3 }
+                ]
+            },
+            {
+                missionTitle: "Misi 3: Logika Infrared",
+                questions: [
+                    { img: "☀️🔴🚫", q: "Tebak Konsep: Remote infrared mengirimkan perintah ke perangkat menggunakan...", options: ["Gelombang Suara", "Sinar Inframerah", "Gelombang Radio", "Sinyal WiFi"], ans: 1 },
+                    { img: "📺➡️👁️➡️🔢", q: "Tebak Urutan Kerja: Cahaya IR diterima sensor, kemudian diubah menjadi...", options: ["Panas", "Data Digital", "Suara", "Gerakan"], ans: 1 },
+                    { img: "🔋❌🔌", q: "Tebak Fitur: Salah satu fungsi remote infrared adalah mengontrol perangkat dari jarak jauh secara...", options: ["Otomatis penuh", "Terprogram AI", "Tanpa kabel (Nirkabel)", "Menggunakan kabel LAN"], ans: 2 },
+                    { img: "📺🥶💿", q: "Tebak Penggunaan: Selain Arduino, perangkat elektronik apa yang umum menggunakan IR Remote?", options: ["TV, AC, DVD", "Kulkas & Setrika", "Sepeda & Motor", "Laptop & Mouse"], ans: 0 },
+                    { img: "🎯📥", q: "Tebak Peran: Dalam alur sistem proyek ini, IR Receiver berperan sebagai alat...", options: ["Output", "Prosesor", "Penyimpan Daya", "Input Utama"], ans: 3 }
+                ]
+            },
+            {
+                missionTitle: "Misi 4: Membaca Kode Program",
+                questions: [
+                    { img: "0️⃣✖️3️⃣0️⃣", q: "Tebak Kode Hex: Kode hexadesimal `0x30` mewakili tombol nomor berapa di remote?", options: ["Tombol 1", "Tombol 2", "Tombol 3", "Tombol 0"], ans: 0 },
+                    { img: "0️⃣✖️1️⃣8️⃣", q: "Tebak Kode Hex: Kode hexadesimal `0x18` mewakili tombol nomor berapa di remote?", options: ["Tombol 1", "Tombol 2", "Tombol Power", "Tombol Menu"], ans: 1 },
+                    { img: "0️⃣✖️2️⃣7️⃣", q: "Tebak Alamat: Alamat default I2C yang sering digunakan untuk inisialisasi LCD adalah...", options: ["0x27", "0xFF", "0x00", "0x16"], ans: 0 },
+                    { img: "#️⃣DEFINE", q: "Tebak Sintaks: Perintah `#define CMD_KEY_1 0x30` berfungsi untuk...", options: ["Menyalakan LED", "Menghapus memori", "Mendeklarasikan konstanta tombol", "Mengulang program"], ans: 2 },
+                    { img: "🔢HEX", q: "Tebak Format: Format angka yang diawali dengan '0x' dalam Arduino disebut bilangan...", options: ["Biner", "Desimal", "Hexadesimal", "Oktal"], ans: 2 }
+                ]
+            },
+            {
+                missionTitle: "Misi 5: Logika LED",
+                questions: [
+                    { img: "💡✨4️⃣✖️", q: "Tebak Aksi: Apa yang terjadi jika Tombol 1 ditekan?", options: ["LED 2 menyala terus", "LED 1 berkedip 4 kali", "LED 1 dan 2 mati", "LCD mati"], ans: 1 },
+                    { img: "💡⏱️1️⃣s", q: "Tebak Aksi: Apa yang terjadi jika Tombol 2 ditekan?", options: ["LED 1 berkedip 4 kali", "LED 2 menyala selama 1 detik", "Arduino Reset", "Program error"], ans: 1 },
+                    { img: "🔌PIN3️⃣", q: "Tebak Pin: Pada contoh skema, LED 1 dihubungkan ke pin digital berapa?", options: ["Pin 2", "Pin 3", "Pin 5", "Pin 13"], ans: 1 },
+                    { img: "🔌PIN5️⃣", q: "Tebak Pin: Pada contoh skema, LED 2 dihubungkan ke pin digital berapa?", options: ["Pin 3", "Pin 4", "Pin 5", "Pin A0"], ans: 2 },
+                    { img: "🔌PIN2️⃣", q: "Tebak Pin: Pin data dari sensor IR Receiver dihubungkan ke pin digital berapa?", options: ["Pin 2", "Pin 3", "Pin 5", "Pin 7"], ans: 0 }
+                ]
+            },
+            {
+                missionTitle: "Misi 6: Tim & Pembalap 1",
+                questions: [
+                    { img: "🏍️🔴🇮🇹", q: "Tebak Pembalap: Siapa pembalap yang berada di tim Ducati Lenovo Team?", options: ["Marc Marquez", "Francesco Bagnaia", "Brad Binder", "Fabio Quartararo"], ans: 1 },
+                    { img: "🏢🔴🇮🇹", q: "Tebak Tim: Francesco Bagnaia adalah pembalap dari tim...", options: ["Repsol Honda", "Aprilia Racing", "Ducati Lenovo Team", "Red Bull KTM"], ans: 2 },
+                    { img: "🏍️🟠🐜", q: "Tebak Pembalap: Siapa pembalap yang ada di data untuk Repsol Honda Team?", options: ["Aleix Espargaro", "Marc Marquez", "Brad Binder", "Francesco Bagnaia"], ans: 1 },
+                    { img: "🏢🟠🇯🇵", q: "Tebak Tim: Marc Marquez tergabung dalam tim...", options: ["Repsol Honda Team", "Monster Energy Yamaha", "Aprilia Racing", "Pramac Racing"], ans: 0 },
+                    { img: "🏍️🔵😈", q: "Tebak Pembalap: Siapa pembalap dari Monster Energy Yamaha?", options: ["Aleix Espargaro", "Fabio Quartararo", "Brad Binder", "Marc Marquez"], ans: 1 }
+                ]
+            },
+            {
+                missionTitle: "Misi 7: Tim & Pembalap 2",
+                questions: [
+                    { img: "🏢🔵🇯🇵", q: "Tebak Tim: Fabio Quartararo adalah pembalap andalan dari tim...", options: ["Ducati Lenovo", "Aprilia Racing", "Monster Energy Yamaha", "Red Bull KTM"], ans: 2 },
+                    { img: "🏍️🟠🐂", q: "Tebak Pembalap: Siapa pembalap untuk Red Bull KTM Factory Racing?", options: ["Brad Binder", "Aleix Espargaro", "Marc Marquez", "Francesco Bagnaia"], ans: 0 },
+                    { img: "🏢🟠🇦🇹", q: "Tebak Tim: Brad Binder membalap untuk tim...", options: ["Repsol Honda", "Red Bull KTM Factory Racing", "Aprilia Racing", "Ducati Lenovo"], ans: 1 },
+                    { img: "🏍️⚫⭐", q: "Tebak Pembalap: Siapa pembalap dari tim Aprilia Racing?", options: ["Fabio Quartararo", "Marc Marquez", "Aleix Espargaro", "Brad Binder"], ans: 2 },
+                    { img: "🏢⚫🇮🇹", q: "Tebak Tim: Aleix Espargaro adalah anggota dari tim...", options: ["Monster Energy Yamaha", "Aprilia Racing", "Repsol Honda", "Red Bull KTM"], ans: 1 }
+                ]
+            },
+            {
+                missionTitle: "Misi 8: Navigasi Tugas MotoGP",
+                questions: [
+                    { img: "➡️⏭️", q: "Tebak Fungsi: Pada tugas MotoGP, apa fungsi dari Tombol 1?", options: ["Menghapus data", "Menampilkan urutan pembalap Maju (Next)", "Mematikan LCD", "Menampilkan urutan Mundur (Prev)"], ans: 1 },
+                    { img: "⬅️⏮️", q: "Tebak Fungsi: Pada tugas MotoGP, apa fungsi dari Tombol 2?", options: ["Menampilkan urutan Mundur (Previous)", "Menyalakan semua LED", "Menampilkan urutan Maju", "Mereset Arduino"], ans: 0 },
+                    { img: "⬇️⬆️", q: "Tebak Arah: Jika urutan data dari bawah ke atas, maka navigasi ini disebut...", options: ["Maju", "Mundur", "Acak", "Tetap"], ans: 1 },
+                    { img: "⬆️⬇️", q: "Tebak Arah: Jika urutan data dari atas ke bawah, maka navigasi ini disebut...", options: ["Mundur", "Looping", "Maju", "Bypass"], ans: 2 },
+                    { img: "📚🗂️", q: "Tebak Konsep Koding: Untuk menyimpan 5 data tim dan pembalap secara terstruktur, sebaiknya kita menggunakan...", options: ["Variabel Integer (int)", "Fungsi Delay()", "Tipe Data Array", "Perulangan While"], ans: 2 }
+                ]
+            },
+            {
+                missionTitle: "Misi 9: Fungsi Setup",
+                questions: [
+                    { img: "🛠️SETUP", q: "Tebak Blok Kode: Fungsi Arduino yang hanya dijalankan satu kali saat perangkat dinyalakan adalah?", options: ["void loop()", "void setup()", "void init()", "void begin()"], ans: 1 },
+                    { img: "🔁LOOP", q: "Tebak Blok Kode: Fungsi Arduino yang dijalankan terus menerus berulang kali adalah?", options: ["void repeat()", "void setup()", "void main()", "void loop()"], ans: 3 },
+                    { img: "📺INIT", q: "Tebak Perintah: Perintah `lcd.init()` digunakan untuk...", options: ["Mematikan LCD", "Menghapus teks LCD", "Menginisialisasi LCD", "Menyalakan lampu LCD"], ans: 2 },
+                    { img: "📺💡", q: "Tebak Perintah: Agar tulisan di LCD terlihat karena ada cahaya latar, digunakan perintah...", options: ["lcd.clear()", "lcd.print()", "lcd.backlight()", "lcd.setCursor()"], ans: 2 },
+                    { img: "👁️▶️", q: "Tebak Perintah: Untuk mengaktifkan penerimaan data dari IR Receiver, digunakan perintah...", options: ["IrReceiver.begin()", "IrReceiver.stop()", "IrReceiver.decode()", "IrReceiver.resume()"], ans: 0 }
+                ]
+            },
+            {
+                missionTitle: "Misi 10: Ujian Akhir",
+                questions: [
+                    { img: "📺📍0️⃣,0️⃣", q: "Tebak Posisi: `lcd.setCursor(0, 0);` akan meletakkan teks pada bagian mana di LCD?", options: ["Baris 2, Kolom 1", "Baris 1, Kolom 1 (Kiri Atas)", "Tengah layar", "Baris 2, Kolom paling kanan"], ans: 1 },
+                    { img: "📺📍0️⃣,1️⃣", q: "Tebak Posisi: `lcd.setCursor(0, 1);` akan meletakkan teks pada bagian mana di LCD?", options: ["Baris 1, Kolom 1", "Baris 1, Kolom 2", "Baris 2, Kolom 1 (Kiri Bawah)", "Baris 2, Kolom 16"], ans: 2 },
+                    { img: "👁️🔍", q: "Tebak Perintah: Fungsi `IrReceiver.decode()` digunakan untuk...", options: ["Mengecek apakah ada sinyal IR yang masuk", "Membersihkan memori IR", "Menyalakan LED", "Menyetel alamat IR"], ans: 0 },
+                    { img: "👁️🔄", q: "Tebak Perintah: Di akhir pembacaan remote, agar sensor siap menerima sinyal berikutnya, dipanggil perintah...", options: ["IrReceiver.stop()", "IrReceiver.begin()", "IrReceiver.resume()", "IrReceiver.clear()"], ans: 2 },
+                    { img: "📝✅💯", q: "Tebak Penilaian: Berapa poin nilai tertinggi dalam rubrik penilaian untuk aspek 'Program berjalan'?", options: ["10", "15", "25", "30"], ans: 3 }
+                ]
+            }
+        ];
+
+        // --- GAME STATE ---
+        let playerName = "";
+        let currentMissionIndex = 0;
+        let currentQuestionIndex = 0;
+        let playerXP = 0;
+        const xpPerQuestion = 20;
+        let canAnswer = true;
+
+        // --- DOM ELEMENTS ---
+        const scrWelcome = document.getElementById('screen-welcome');
+        const scrName = document.getElementById('screen-name');
+        const scrGame = document.getElementById('screen-game');
+        const scrMissionComplete = document.getElementById('screen-mission-complete');
+        const scrEnd = document.getElementById('screen-end');
+        
+        const uiName = document.getElementById('hud-name');
+        const uiMission = document.getElementById('hud-mission');
+        const uiProgress = document.getElementById('hud-progress');
+        const uiXp = document.getElementById('hud-xp');
+        
+        const elMissionTitle = document.getElementById('mission-title-display');
+        const elQImage = document.getElementById('question-image');
+        const elQText = document.getElementById('question-text');
+        
+        const optionBtns = [
+            document.getElementById('opt-0').parentElement,
+            document.getElementById('opt-1').parentElement,
+            document.getElementById('opt-2').parentElement,
+            document.getElementById('opt-3').parentElement
+        ];
+        const optionTexts = [
+            document.getElementById('opt-0'),
+            document.getElementById('opt-1'),
+            document.getElementById('opt-2'),
+            document.getElementById('opt-3')
+        ];
+
+        // --- NAVIGATION LOGIC ---
+        function goToNameScreen() {
+            scrWelcome.classList.add('hidden-screen');
+            scrName.classList.remove('hidden-screen');
+            document.getElementById('player-name-input').focus();
+        }
+
+        function backToWelcome() {
+            scrName.classList.add('hidden-screen');
+            scrWelcome.classList.remove('hidden-screen');
+        }
+
+        function startGame() {
+            const nameInput = document.getElementById('player-name-input').value.trim();
+            if(nameInput === "") {
+                // Flash red if empty
+                document.getElementById('player-name-input').classList.add('border-red-500');
+                setTimeout(() => document.getElementById('player-name-input').classList.remove('border-red-500'), 500);
+                return;
+            }
+            
+            playerName = nameInput;
+            currentMissionIndex = 0;
+            currentQuestionIndex = 0;
+            playerXP = 0;
+            
+            uiName.innerText = playerName;
+            updateHUD();
+
+            scrName.classList.add('hidden-screen');
+            scrGame.classList.remove('hidden-screen');
+            
+            loadQuestion();
+        }
+
+        // --- CORE GAMEPLAY LOGIC ---
+        function updateHUD() {
+            uiMission.innerText = `Misi ${currentMissionIndex + 1}/10`;
+            uiProgress.innerText = `${currentQuestionIndex + 1}/5`;
+            
+            // Animate XP number update
+            let currentDisplayXP = parseInt(uiXp.innerText);
+            let diff = playerXP - currentDisplayXP;
+            if (diff > 0) {
+                uiXp.classList.add('text-white');
+                setTimeout(()=> uiXp.classList.remove('text-white'), 300);
+            }
+            uiXp.innerText = playerXP;
+            
+            elMissionTitle.innerText = gameData[currentMissionIndex].missionTitle;
+        }
+
+        function loadQuestion() {
+            canAnswer = true;
+            updateHUD();
+            
+            const mission = gameData[currentMissionIndex];
+            const q = mission.questions[currentQuestionIndex];
+            
+            // Reset buttons styling
+            optionBtns.forEach((btn, idx) => {
+                btn.classList.remove('correct-ans', 'wrong-ans', 'opacity-50');
+                btn.disabled = false;
+                optionTexts[idx].innerText = q.options[idx];
+            });
+
+            // Set content
+            elQImage.innerText = q.img;
+            elQText.innerText = q.q;
+            
+            // Pop animation for image
+            elQImage.style.transform = 'scale(0.5)';
+            elQImage.style.opacity = '0';
+            setTimeout(() => {
+                elQImage.style.transition = 'all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                elQImage.style.transform = 'scale(1)';
+                elQImage.style.opacity = '1';
+            }, 50);
+        }
+
+        function checkAnswer(selectedIndex) {
+            if (!canAnswer) return;
+            canAnswer = false;
+
+            const mission = gameData[currentMissionIndex];
+            const q = mission.questions[currentQuestionIndex];
+            const isCorrect = (selectedIndex === q.ans);
+
+            // Style selected button
+            if (isCorrect) {
+                optionBtns[selectedIndex].classList.add('correct-ans');
+                playerXP += xpPerQuestion;
+                updateHUD();
+            } else {
+                optionBtns[selectedIndex].classList.add('wrong-ans');
+                // Show the correct one
+                optionBtns[q.ans].classList.add('correct-ans');
+            }
+
+            // Dim others
+            optionBtns.forEach((btn, idx) => {
+                btn.disabled = true;
+                if(idx !== selectedIndex && idx !== q.ans) {
+                    btn.classList.add('opacity-50');
+                }
+            });
+
+            // Wait then next
+            setTimeout(() => {
+                currentQuestionIndex++;
+                if (currentQuestionIndex >= 5) {
+                    showMissionComplete();
+                } else {
+                    loadQuestion();
+                }
+            }, 1500);
+        }
+
+        // --- LEVEL UP / PROGRESSION LOGIC ---
+        function showMissionComplete() {
+            scrGame.classList.add('hidden-screen');
+            document.getElementById('mission-complete-text').innerText = `Kamu telah menyelesaikan ${gameData[currentMissionIndex].missionTitle}.`;
+            document.getElementById('mission-xp-gained').innerText = `+${xpPerQuestion * 5} Max XP`;
+            
+            if (currentMissionIndex < 9) {
+                document.getElementById('next-mission-num').innerText = currentMissionIndex + 2;
+                scrMissionComplete.classList.remove('hidden-screen');
+            } else {
+                showEndScreen();
+            }
+        }
+
+        function nextMission() {
+            scrMissionComplete.classList.add('hidden-screen');
+            currentMissionIndex++;
+            currentQuestionIndex = 0;
+            scrGame.classList.remove('hidden-screen');
+            loadQuestion();
+        }
+
+        function showEndScreen() {
+            scrMissionComplete.classList.add('hidden-screen');
+            scrGame.classList.add('hidden-screen');
+            
+            document.getElementById('final-name').innerText = playerName;
+            document.getElementById('final-xp').innerText = `${playerXP} XP`;
+            
+            let rank = "Pemula";
+            if(playerXP >= 900) rank = "Legenda MotoGP";
+            else if(playerXP >= 700) rank = "Teknisi Senior";
+            else if(playerXP >= 500) rank = "Mekanik Ahli";
+            else if(playerXP >= 300) rank = "Perakit Junior";
+            
+            document.getElementById('final-rank').innerText = rank;
+            
+            scrEnd.classList.remove('hidden-screen');
+        }
+
+        function restartGame() {
+            scrEnd.classList.add('hidden-screen');
+            scrWelcome.classList.remove('hidden-screen');
+            document.getElementById('player-name-input').value = "";
+        }
+    </script>
+</body>
+</html>
